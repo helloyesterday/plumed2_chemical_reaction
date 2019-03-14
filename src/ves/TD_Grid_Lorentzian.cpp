@@ -58,6 +58,7 @@ private:
   Grid* grad_fes_grid_pntr_ ;
   Grid* norm_bias_ ;
   double scale_factor_;
+  int pstride;
   std::vector<double> weight_factor_;
   std::vector<double> weight_2;
 //  std::vector<unsigned> nbins;
@@ -91,6 +92,7 @@ void TD_Lorentzian::registerKeywords(Keywords& keys) {
   TargetDistribution::registerKeywords(keys);
   keys.add("compulsory","SCALEFACTOR","The scale factor used for the Lorentzian distribution.");
   keys.add("compulsory","WEIGHTFACTOR","The scale factor used for the Lorentzian distribution.");
+  keys.add("optional","PRINT_STRIDE","The frequency of printing the gradient of the FES");
 }
 
 
@@ -100,6 +102,7 @@ TD_Lorentzian::TD_Lorentzian(const ActionOptions& ao):
   grad_fes_grid_pntr_(NULL),
   norm_bias_(NULL),
   scale_factor_(0.0),
+  pstride(0),
   weight_factor_(0.0),
   weight_2(0.0),
 //  nbins(0),
@@ -116,6 +119,10 @@ TD_Lorentzian::TD_Lorentzian(const ActionOptions& ao):
 {
   parse("SCALEFACTOR",scale_factor_);
   parseVector("WEIGHTFACTOR",weight_factor_);
+  if(keywords.exists("PRINT_STRIDE")) {
+    parse("PRINT_STRIDE",pstride);
+  }
+
 //  if(keywords.exists("GRID_BINS")) {
 //  std::cout<<"here1"<<std::endl;
 //    parseVector("GRID_BINS",nbins);
@@ -536,13 +543,15 @@ void TD_Lorentzian::calculateGradient(){
    std::string time;
    Tools::convert(getPntrToVesBias()->getIterationFilenameSuffix(),time);
 //   std::string gradFes_fname = "gradFes."+std::to_string(iter)+".data" ;
-   std::string gradFes_fname = gradient_init_filename_+time+".data";
-   OFile ofile;
-   ofile.link(*this);
-   ofile.enforceBackup(); 
-   ofile.open(gradFes_fname);
-   grad_fes_grid_pntr_->writeToFile(ofile);
-   ofile.close();
+   if(pstride!= 0 && getPntrToVesBias()->getIterationCounter()%pstride==0){
+     std::string gradFes_fname = gradient_init_filename_+time+".data";
+     OFile ofile;
+     ofile.link(*this);
+     ofile.enforceBackup(); 
+     ofile.open(gradFes_fname);
+     grad_fes_grid_pntr_->writeToFile(ofile);
+     ofile.close();
+   }
 
 }
 
